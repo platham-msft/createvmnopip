@@ -9,7 +9,10 @@ Connect-AzAccount
 $ImageID = "/subscriptions/44d9a18a-92e1-4d8d-bae4-f8aad05ac661/resourceGroups/rg-infra-dev-neu/providers/Microsoft.Compute/galleries/GalleryDevNeu/images/Win10Client"
 
 #Domain to join (FQDN)
-$ADDomain = "corp.contoso.com"
+$ADDomain = "cloud.corp.contoso.com"
+
+#OU for Computer Object (Distinguished Name Format)
+$ADOU = "OU=AADDC Computers,DC=cloud,DC=corp,DC=contoso,DC=com"
 
 #Azure Region to deploy to
 $LocationName = "northeurope"
@@ -66,5 +69,5 @@ $VirtualMachine = Set-AzVMBootDiagnostic -VM $VirtualMachine -Enable -ResourceGr
 #Create the VM using this configuration
 New-AzVM -ResourceGroupName $ResourceGroupName -Location $LocationName -VM $VirtualMachine -LicenseType Windows_Client -Verbose
 
-#Configure the Domain Join Extension to join this machine to the domain
-Set-AzVMADDomainExtension -VMName $VMName -ResourceGroupName $ResourceGroupName -Location $LocationName -DomainName $ADDomain -Credential $ADCredential
+#Configure the Domain Join Extension to join this machine to the domain, join option documented here: https://docs.microsoft.com/en-us/windows/desktop/api/lmjoin/nf-lmjoin-netjoindomain
+Set-AzVMADDomainExtension -OUPath $ADOU -VMName $VMName -ResourceGroupName $ResourceGroupName -Location $LocationName -DomainName $ADDomain -Credential $ADCredential -JoinOption "0x00000003"
