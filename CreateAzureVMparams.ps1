@@ -59,8 +59,6 @@ Param (
 
     [Parameter(Position=8,HelpMessage="Licence Type - Set to Windows_Server to use Hybrid Use Benefit")]
 
-    [ValidateNotNullOrEmpty()]
-
     [string] $LicenceType = $null,
 
 
@@ -100,6 +98,9 @@ Param (
 
 
 )
+
+#Suppress Breaking Change Warnings because they're annoying
+Set-Item Env:\SuppressAzurePowerShellBreakingChangeWarnings "true"
 
 #Log in to Azure using the Managed Identity of the VM
 Connect-AzAccount -Identity -Subscription $SubID
