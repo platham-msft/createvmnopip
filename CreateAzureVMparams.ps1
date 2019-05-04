@@ -1,4 +1,5 @@
-﻿#Define the parameters for the script
+﻿#This script is for creating a vm without a public ip, with all credentials used secured in key vault
+#Define the parameters for the script
 Param (
 
     [Parameter(Position=0,HelpMessage="Subscription ID to log in to")]
@@ -97,19 +98,41 @@ Param (
     [string] $SecretName = "ContosoLocalAdminPassword"
 
 
+    [Parameter(Position=14,HelpMessage="Service Principal to log in as")]
+
+    [ValidateNotNullOrEmpty()]
+
+    [string] $SP = ""
+
+
+    [Parameter(Position=15,HelpMessage="Name of the SP Secret in KeyVault")]
+
+    [ValidateNotNullOrEmpty()]
+
+    [string] $SPSecretName = "SPSecret"
+
+
 )
 
 #Suppress Breaking Change Warnings because they're annoying
 Set-Item Env:\SuppressAzurePowerShellBreakingChangeWarnings "true"
 
+##I'm sure there must be a better way of doing this than logging in twice??
 #Log in to Azure using the Managed Identity of the VM
 Connect-AzAccount -Identity -Subscription $SubID
+
+#Retrieve Service Principal Secret and create credential object
+$SPCredential = New-Object System.Management.Automation.PSCredential ($SP, (Get-AzKeyVaultSecret -VaultName $KV -Name $SPSecretName).SecretValue)
+
+#Log in to Azure using the Service Principal
+Connect-AzAccount -ServicePrincipal -Credential $SPCredential -Subscription $SubID
+##/I'm sure there must be a better way of doing this than logging in twice??
 
 #Set the Computer (Host) name to be the same as the VM Name
 $ComputerName = $VMName
 
 #Retrieve the local administrator account password from KeyVault
-$VMLocalAdminSecurePassword = (Get-AzKeyVaultSecret -vaultName $KV -name $SecretName).SecretValue
+$VMLocalAdminSecurePassword = (Get-AzKeyVaultSecret -VaultName $KV -Name $SecretName).SecretValue
 
 #Load the local admin username and password into a credential object
 $Credential = New-Object System.Management.Automation.PSCredential ($VMLocalAdminUser, $VMLocalAdminSecurePassword)
@@ -117,7 +140,7 @@ $Credential = New-Object System.Management.Automation.PSCredential ($VMLocalAdmi
 #Name the NIC the VMName with "nic" appended to the end
 $NICName = $VMName + "nic"
 
-#We need to load the vnet object into a variable, then create the NIC and attach to the vnet. Notice the Subnet ID, you'll need to configure this correctly for your EXTERNAL, INTERNAL or MANAGEMENT subnet.
+#We need to load the vnet object into a variable, then create the NIC and attach to the vnet
 $Vnet = Get-AzVirtualNetwork -Name $NetworkName
 
 #Get the ID of the subnet named in SubnetID variable
