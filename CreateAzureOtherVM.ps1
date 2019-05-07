@@ -274,4 +274,4 @@ $VirtualMachine = Set-AzVMBootDiagnostic -VM $VirtualMachine -Enable -ResourceGr
 New-AzVM -ResourceGroupName $ResourceGroupName -Location $LocationName -VM $VirtualMachine -LicenseType $LicenseType -Verbose
 
 #If we are using a SQL Server image install the SQL IaaS Agent
-If ($ImagePublisher -eq "MicrosoftSQLServer") {Set-AzVMSqlServerExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -name "SQLIaasExtension" -Version 2.0 -Location $Location}
+If ($ImagePublisher -eq "MicrosoftSQLServer") {Set-AzVMSqlServerExtension -ResourceGroupName $ResourceGroupName -VMName $VMName -name "SQLIaasExtension" -Version 2.0 -Location $LocationName}
