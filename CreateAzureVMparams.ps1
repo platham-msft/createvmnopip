@@ -6,7 +6,7 @@ Param (
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $SubID = "ae6dcf2f-4706-4430-9053-1f68cb1145aa",
+    [string] $SubID = "44d9a18a-92e1-4d8d-bae4-f8aad05ac661",
 
     
     [Parameter(Position=1,HelpMessage="Resource Group to deploy into")]
@@ -27,7 +27,7 @@ Param (
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $NetworkName = "deploytestneu-rg",
+    [string] $NetworkName = "vnet-prod-neu",
 
 
     [Parameter(Position=4,HelpMessage="Subnet to deploy to")]
@@ -84,32 +84,32 @@ Param (
     [string] $VMLocalAdminUser = "lcladmin",
 
 
-    [Parameter(Position=12,HelpMessage="Name of the KeyVault to retrieve the local administrator password from")]
+    [Parameter(Position=12,HelpMessage="Name of the KeyVault to retrieve secrets from")]
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $KV = "MyKeyVault",
+    [string] $KV = "badassinfraprodneukv",
 
 
     [Parameter(Position=13,HelpMessage="Name of the secret in the Keyvault containing the local administrator password")]
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $SecretName = "ContosoLocalAdminPassword"
+    [string] $SecretName = "BuildPassword",
 
 
-    [Parameter(Position=14,HelpMessage="Service Principal to log in as")]
+    [Parameter(Position=14,HelpMessage="Name of the secret storing the Service Principal name in Keyvault")]
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $SP = ""
+    [string] $SPName = "BuildSp",
 
 
     [Parameter(Position=15,HelpMessage="Name of the SP Secret in KeyVault")]
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $SPSecretName = "SPSecret"
+    [string] $SPSecretName = "BuildSpSecret"
 
 
 )
@@ -122,7 +122,7 @@ Set-Item Env:\SuppressAzurePowerShellBreakingChangeWarnings "true"
 Connect-AzAccount -Identity -Subscription $SubID
 
 #Retrieve Service Principal Secret and create credential object
-$SPCredential = New-Object System.Management.Automation.PSCredential ($SP, (Get-AzKeyVaultSecret -VaultName $KV -Name $SPSecretName).SecretValue)
+$SPCredential = New-Object System.Management.Automation.PSCredential ((Get-AzKeyVaultSecret -VaultName $KV -Name $SPName).SecretValueText, (Get-AzKeyVaultSecret -VaultName $KV -Name $SPSecretName).SecretValue)
 
 #Log in to Azure using the Service Principal
 Connect-AzAccount -ServicePrincipal -Credential $SPCredential -Subscription $SubID
@@ -148,6 +148,12 @@ $SubnetID = (Get-AzVirtualNetworkSubnetConfig -Name $SubnetName -VirtualNetwork 
 
 #Create the NIC and store the object in a variable
 $NIC = New-AzNetworkInterface -Name $NICName -ResourceGroupName $ResourceGroupName -Location $LocationName -SubnetId $SubnetID
+
+#Optional code for setting the  IP as static
+#$Subnet = Get-AzVirtualNetworkSubnetConfig -Name $SubnetName -VirtualNetwork $Vnet
+$NIC| Set-AzNetworkInterfaceIpConfig -Name $NIC.IpConfigurations[0].Name -PrivateIpAddress $NIC.IpConfigurations[0].PrivateIpAddress -SubnetId $SubnetID -Primary
+$NIC| Set-AzNetworkInterface
+#/Optional code for setting the  IP as static
 
 #Put all the configuration for the VM into a variable
 $VirtualMachine = New-AzVMConfig -VMName $VMName -VMSize $VMSize
