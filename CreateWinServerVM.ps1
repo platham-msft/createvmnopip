@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Script to create a vm with no public IP retrieving all required credentials from secrets stored in keyvault
+Script to create a vm from a marketplace image  with no public IP retrieving all required credentials from secrets stored in keyvault or prompting the user for them if no keyvault specified
 
 .DESCRIPTION
 If you wanted to make this really short, you could.
@@ -145,7 +145,7 @@ Param (
 
     [ValidateNotNullOrEmpty()]
 
-    [string] $VMName = "deptest01",
+    [string] $VMName = "deptest42",
 
 
     [Parameter(Position=9,HelpMessage="Virtual Machine Size, defaults to Standard_DS2_v2 - use Get-AzVMSize to find what's available in each region")]
@@ -244,10 +244,10 @@ Connect-AzAccount -ServicePrincipal -Credential $SPCredential -Subscription $Sub
 #Name the NIC the VMName with "nic" appended to the end
 $NICName = $VMName + "nic"
 
-#We need to load the vnet object into a variable, then create the NIC and attach to the vnet
+#We need to load the vnet object into a variable if we are going to look up the subnet id from the name
 $Vnet = Get-AzVirtualNetwork -Name $NetworkName
 
-#Get the ID of the subnet named in SubnetID variable
+#Get the ID of the subnet named in SubnetName and store it in the SubnetID variable
 $SubnetID = (Get-AzVirtualNetworkSubnetConfig -Name $SubnetName -VirtualNetwork $Vnet).Id
 
 #Create the NIC and store the object in a variable
@@ -269,6 +269,7 @@ $VirtualMachine = Set-AzVMOperatingSystem -VM $VirtualMachine -Windows -Computer
 $VirtualMachine = Add-AzVMNetworkInterface -VM $VirtualMachine -Id $NIC.Id
 $VirtualMachine = Set-AzVMSourceImage -VM $VirtualMachine -PublisherName $ImagePublisher -Offer $ImageOffer -Skus $ImageSKU -Version $ImgVersion
 $VirtualMachine = Set-AzVMBootDiagnostic -VM $VirtualMachine -Enable -ResourceGroupName $ResourceGroupName -StorageAccountName $DiagAccountName
+$VirtualMachine = Add-AzVMDataDisk -VM $VirtualMachine -LUN 0 -Caching ReadOnly -DiskSizeinGB 32 -CreateOption Empty
 
 #Create the VM using this configuration
 New-AzVM -ResourceGroupName $ResourceGroupName -Location $LocationName -VM $VirtualMachine -LicenseType $LicenseType -Verbose
